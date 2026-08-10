@@ -2,21 +2,18 @@ import os
 import pandas as pd
 import requests
 
-def fetch_player_stats():
+def fetch_eredivisie_data():
     """
     Haalt live Eredivisie-spelers en selecties op van een openbare bron,
     zonder dat er een account of API-sleutel nodig is.
     """
-    print("Starten met live ophalen van actuele Eredivisie-data (Zonder API Key)...")
+    print("Starten met live ophalen van actuele Eredivisie-data...")
     
-    # Gebruik een standaard browser-identificatie zodat de aanvraag niet geblokkeerd wordt
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
     }
     
     players_data = []
-    
-    # Eredivisie ID bij de openbare voetbal-feed
     league_url = "https://www.fotmob.com/api/leagues?id=57"
     
     try:
@@ -30,7 +27,6 @@ def fetch_player_stats():
                 team_id = team.get("id")
                 team_name = team.get("name")
                 
-                # Haal de live selectie op per club
                 team_url = f"https://www.fotmob.com/api/teams?id={team_id}"
                 t_resp = requests.get(team_url, headers=headers, timeout=10)
                 
@@ -66,11 +62,11 @@ def fetch_player_stats():
                                 "xA_p90": round(assists * 0.25 + 0.05, 2),
                                 "xG+xA_p90": round(goals * 0.35 + assists * 0.25 + 0.15, 2)
                             })
-            print(f"Succesvol {len(players_data)} live spelers ophaald!")
+            print(f"Succesvol {len(players_data)} live spelers opgehaald!")
     except Exception as e:
         print(f"Web scraper meldt een netwerkfout: {e}")
 
-    # Als de scraper niets kan ophalen, gebruiken we de nieuwste handmatige dataset
+    # Backup dataset indien scraper geen verbinding kan maken
     if not players_data:
         print("Schakelt over op actuele handmatige selecties...")
         players_data = [
@@ -88,6 +84,10 @@ def fetch_player_stats():
     df.to_parquet("eredivisie_players_2026.parquet")
     df.to_csv("eredivisie_players_2026.csv", index=False)
     print("Data succesvol opgeslagen!")
+    return df
+
+# Extra functie-aliasing voor comptabiliteit
+fetch_player_stats = fetch_eredivisie_data
 
 def fetch_transfers_and_news():
     news_data = [
@@ -97,5 +97,5 @@ def fetch_transfers_and_news():
     pd.DataFrame(news_data).to_csv("transfers_news.csv", index=False)
 
 if __name__ == "__main__":
-    fetch_player_stats()
+    fetch_eredivisie_data()
     fetch_transfers_and_news()
