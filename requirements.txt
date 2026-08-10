@@ -1,6 +1,5 @@
 streamlit
 pandas
-plotly
-pyarrow
-feedparser
 requests
+pyarrow
+beautifulsoup4
