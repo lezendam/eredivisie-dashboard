@@ -47,14 +47,24 @@ def fetch_eredivisie_data():
                         for p in group.get("members", []):
                             goals = p.get("goals", 0)
                             assists = p.get("assists", 0)
+                            speler_naam = p.get("name")
+                            rugnr = p.get("shirtNumber", "-")
                             
                             players_data.append({
-                                "speler": p.get("name"),
+                                # Zowel hoofdletter als kleine letter voor maximale compatibiliteit met app.py
+                                "Team": team_name,
                                 "team": team_name,
+                                "Speler": speler_naam,
+                                "speler": speler_naam,
+                                "Positie": positie,
                                 "positie": positie,
-                                "rugnummer": p.get("shirtNumber", "-"),
+                                "Rugnummer": rugnr,
+                                "rugnummer": rugnr,
+                                "Minuten": 90,
                                 "minuten": 90,
+                                "Goals": goals,
                                 "goals": goals,
+                                "Assists": assists,
                                 "assists": assists,
                                 "xG": round(goals * 0.35 + 0.1, 2),
                                 "xA": round(assists * 0.25 + 0.05, 2),
@@ -70,14 +80,14 @@ def fetch_eredivisie_data():
     if not players_data:
         print("Schakelt over op actuele handmatige selecties...")
         players_data = [
-            {"speler": "Remko Pasveer", "team": "Ajax", "positie": "Doelman", "minuten": 90, "goals": 0, "assists": 0, "xG": 0.0, "xA": 0.0, "xG_p90": 0.0, "xA_p90": 0.0, "xG+xA_p90": 0.0},
-            {"speler": "Jorrel Hato", "team": "Ajax", "positie": "Verdediger", "minuten": 90, "goals": 0, "assists": 0, "xG": 0.06, "xA": 0.14, "xG_p90": 0.06, "xA_p90": 0.14, "xG+xA_p90": 0.20},
-            {"speler": "Mika Godts", "team": "Ajax", "positie": "Aanvaller", "minuten": 85, "goals": 1, "assists": 1, "xG": 0.65, "xA": 0.48, "xG_p90": 0.65, "xA_p90": 0.48, "xG+xA_p90": 1.13},
-            {"speler": "Wout Weghorst", "team": "FC Twente", "positie": "Aanvaller", "minuten": 90, "goals": 1, "assists": 0, "xG": 0.72, "xA": 0.12, "xG_p90": 0.72, "xA_p90": 0.12, "xG+xA_p90": 0.84},
-            {"speler": "Sem Steijn", "team": "Feyenoord", "positie": "Middenvelder", "minuten": 85, "goals": 1, "assists": 0, "xG": 0.68, "xA": 0.22, "xG_p90": 0.68, "xA_p90": 0.22, "xG+xA_p90": 0.90},
-            {"speler": "Quinten Timber", "team": "Feyenoord", "positie": "Middenvelder", "minuten": 90, "goals": 1, "assists": 0, "xG": 0.42, "xA": 0.25, "xG_p90": 0.42, "xA_p90": 0.25, "xG+xA_p90": 0.67},
-            {"speler": "Joey Veerman", "team": "PSV", "positie": "Middenvelder", "minuten": 90, "goals": 0, "assists": 1, "xG": 0.15, "xA": 0.58, "xG_p90": 0.15, "xA_p90": 0.58, "xG+xA_p90": 0.73},
-            {"speler": "Ricardo Pepi", "team": "PSV", "positie": "Aanvaller", "minuten": 90, "goals": 1, "assists": 0, "xG": 0.88, "xA": 0.10, "xG_p90": 0.88, "xA_p90": 0.10, "xG+xA_p90": 0.98},
+            {"Team": "Ajax", "team": "Ajax", "Speler": "Remko Pasveer", "speler": "Remko Pasveer", "Positie": "Doelman", "positie": "Doelman", "Minuten": 90, "minuten": 90, "Goals": 0, "goals": 0, "Assists": 0, "assists": 0, "xG": 0.0, "xA": 0.0, "xG_p90": 0.0, "xA_p90": 0.0, "xG+xA_p90": 0.0},
+            {"Team": "Ajax", "team": "Ajax", "Speler": "Jorrel Hato", "speler": "Jorrel Hato", "Positie": "Verdediger", "positie": "Verdediger", "Minuten": 90, "minuten": 90, "Goals": 0, "goals": 0, "Assists": 0, "assists": 0, "xG": 0.06, "xA": 0.14, "xG_p90": 0.06, "xA_p90": 0.14, "xG+xA_p90": 0.20},
+            {"Team": "Ajax", "team": "Ajax", "Speler": "Mika Godts", "speler": "Mika Godts", "Positie": "Aanvaller", "positie": "Aanvaller", "Minuten": 85, "minuten": 85, "Goals": 1, "goals": 1, "Assists": 1, "assists": 1, "xG": 0.65, "xA": 0.48, "xG_p90": 0.65, "xA_p90": 0.48, "xG+xA_p90": 1.13},
+            {"Team": "FC Twente", "team": "FC Twente", "Speler": "Wout Weghorst", "speler": "Wout Weghorst", "Positie": "Aanvaller", "positie": "Aanvaller", "Minuten": 90, "minuten": 90, "Goals": 1, "goals": 1, "Assists": 0, "assists": 0, "xG": 0.72, "xA": 0.12, "xG_p90": 0.72, "xA_p90": 0.12, "xG+xA_p90": 0.84},
+            {"Team": "Feyenoord", "team": "Feyenoord", "Speler": "Sem Steijn", "speler": "Sem Steijn", "Positie": "Middenvelder", "positie": "Middenvelder", "Minuten": 85, "minuten": 85, "Goals": 1, "goals": 1, "Assists": 0, "assists": 0, "xG": 0.68, "xA": 0.22, "xG_p90": 0.68, "xA_p90": 0.22, "xG+xA_p90": 0.90},
+            {"Team": "Feyenoord", "team": "Feyenoord", "Speler": "Quinten Timber", "speler": "Quinten Timber", "Positie": "Middenvelder", "positie": "Middenvelder", "Minuten": 90, "minuten": 90, "Goals": 1, "goals": 1, "Assists": 0, "assists": 0, "xG": 0.42, "xA": 0.25, "xG_p90": 0.42, "xA_p90": 0.25, "xG+xA_p90": 0.67},
+            {"Team": "PSV", "team": "PSV", "Speler": "Joey Veerman", "speler": "Joey Veerman", "Positie": "Middenvelder", "positie": "Middenvelder", "Minuten": 90, "minuten": 90, "Goals": 0, "goals": 0, "Assists": 1, "assists": 1, "xG": 0.15, "xA": 0.58, "xG_p90": 0.15, "xA_p90": 0.58, "xG+xA_p90": 0.73},
+            {"Team": "PSV", "team": "PSV", "Speler": "Ricardo Pepi", "speler": "Ricardo Pepi", "Positie": "Aanvaller", "positie": "Aanvaller", "Minuten": 90, "minuten": 90, "Goals": 1, "goals": 1, "Assists": 0, "assists": 0, "xG": 0.88, "xA": 0.10, "xG_p90": 0.88, "xA_p90": 0.10, "xG+xA_p90": 0.98},
         ]
 
     df = pd.DataFrame(players_data)
@@ -86,7 +96,7 @@ def fetch_eredivisie_data():
     print("Data succesvol opgeslagen!")
     return df
 
-# Extra functie-aliasing voor comptabiliteit
+# Extra functie-aliasing voor compatibiliteit
 fetch_player_stats = fetch_eredivisie_data
 
 def fetch_transfers_and_news():
