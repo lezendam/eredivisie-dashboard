@@ -1,24 +1,29 @@
 import streamlit as st
 import pandas as pd
 import plotly.express as px
+import os
+import fetch_data
 
 st.set_page_config(page_title="Eredivisie 2026-2027 Analytics", layout="wide")
 
 @st.cache_data(ttl=3600)
 def load_data():
+    # Als de data er nog niet is, genereer deze direct
+    if not os.path.exists("eredivisie_players_2026.parquet") or not os.path.exists("transfers_news.csv"):
+        with st.spinner("Data wordt voor de eerste keer opgehaald..."):
+            fetch_data.fetch_player_stats()
+            fetch_data.fetch_transfers_and_news()
+            
     players_df = pd.read_parquet("eredivisie_players_2026.parquet")
     news_df = pd.read_csv("transfers_news.csv")
     return players_df, news_df
 
-try:
-    players_df, news_df = load_data()
-except Exception:
-    st.warning("Data wordt momenteel geladen of gegenereerd... Vernieuw de pagina zo meteen.")
-    st.stop()
+players_df, news_df = load_data()
 
 st.title("⚽ Eredivisie 2026-2027 Analytics & Transfer Radar")
 st.caption("Automatisch ververst na elke speelronde. Inclusief xG, xA en Expected Threat (xT).")
 
+# Sidebar Filters
 st.sidebar.header("🔍 Filters")
 selected_team = st.sidebar.multiselect("Selecteer Team(s)", options=players_df["team"].unique(), default=players_df["team"].unique())
 selected_pos = st.sidebar.multiselect("Selecteer Positie(s)", options=players_df["positie"].unique(), default=players_df["positie"].unique())
