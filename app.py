@@ -1,161 +1,73 @@
 import streamlit as st
 import pandas as pd
-import plotly.express as px
+import os
 from fetch_data import fetch_eredivisie_data
 
-# Pagina instellingen
-st.set_page_config(
-    page_title="Eredivisie Analytics 2026/2027",
-    page_icon="⚽",
-    layout="wide"
-)
+st.set_page_config(page_title="Eredivisie Dashboard 2026/2027", layout="wide")
 
-st.title("⚽ Eredivisie Player Analytics Dashboard (Seizoen 2026/2027)")
-st.write("Analyseer de prestatiestatistieken van **alle 18 Eredivisie-teams** en **alle posities**.")
+st.title("Dashboard (Seizoen 2026/2027)")
+st.caption("Analyseer de prestatiestatistieken van alle 18 Eredivisie-teams en alle posities.")
 
-# Caching van data om laadsnelheid te optimaliseren
 @st.cache_data(ttl=3600)
 def load_data():
-    return fetch_eredivisie_data()
+    # 1. Probeer de nieuwste data op te halen via fetch_data
+    try:
+        df = fetch_eredivisie_data()
+    except Exception as e:
+        # Fallback naar opgeslagen bestand
+        if os.path.exists("eredivisie_players_2026.parquet"):
+            df = pd.read_parquet("eredivisie_players_2026.parquet")
+        elif os.path.exists("eredivisie_players_2026.csv"):
+            df = pd.read_csv("eredivisie_players_2026.csv")
+        else:
+            st.error("Geen data gevonden.")
+            return pd.DataFrame()
+
+    # 2. Corrigeer kolomnamen automatisch (hoofdletteronafhankelijk)
+    renames = {
+        "team": "Team",
+        "speler": "Speler",
+        "positie": "Positie",
+        "goals": "Goals",
+        "assists": "Assists",
+        "minuten": "Minuten",
+        "rugnummer": "Rugnummer"
+    }
+    df = df.rename(columns=renames)
+    
+    return df
 
 df = load_data()
 
-# --- SIDEBAR FILTERS ---
-st.sidebar.header("🔍 Filters")
+if not df.empty and "Team" in df.columns:
+    # Filters in de sidebar
+    st.sidebar.header("Filters")
+    
+    alle_teams = ["Alle teams"] + sorted(df["Team"].dropna().unique().tolist())
+    gekozen_team = st.sidebar.selectbox("Selecteer Team", alle_teams)
+    
+    alle_posities = ["Alle posities"] + sorted(df["Positie"].dropna().unique().tolist()) if "Positie" in df.columns else ["Alle posities"]
+    gekozen_positie = st.sidebar.selectbox("Selecteer Positie", alle_posities)
+    
+    # Filteren van de DataFrame
+    filtered_df = df.copy()
+    if gekozen_team != "Alle teams":
+        filtered_df = filtered_df[filtered_df["Team"] == gekozen_team]
+    if gekozen_positie != "Alle posities" and "Positie" in filtered_df.columns:
+        filtered_df = filtered_df[filtered_df["Positie"] == gekozen_positie]
+        
+    # KPI metrics bovenaan
+    col1, col2, col3 = st.columns(3)
+    col1.metric("Totaal Spelers", len(filtered_df))
+    if "Goals" in filtered_df.columns:
+        col2.metric("Totaal Goals", int(filtered_df["Goals"].sum()))
+    if "Assists" in filtered_df.columns:
+        col3.metric("Totaal Assists", int(filtered_df["Assists"].sum()))
 
-# Knop om alle filters direct te herstellen
-if st.sidebar.button("🔄 Reset alle filters"):
-    st.session_state.clear()
-    st.rerun()
-
-# 1. Team Filter
-alle_teams = sorted(df["Team"].unique().tolist())
-geselecteerde_teams = st.sidebar.multiselect(
-    "Selecteer Team(s):",
-    options=alle_teams,
-    default=alle_teams,
-    key="team_filter"
-)
-
-# 2. Positie Filter
-alle_posities = sorted(df["Positie"].unique().tolist())
-geselecteerde_posities = st.sidebar.multiselect(
-    "Selecteer Positie(s):",
-    options=alle_posities,
-    default=alle_posities,
-    key="positie_filter"
-)
-
-# 3. Zoekbalk op speler
-zoek_speler = st.sidebar.text_input("Zoek op spelersnaam:", "", key="zoek_speler")
-
-# 4. Filter op minimale speelminuten
-min_minuten = int(df["Minuten"].min())
-max_minuten = int(df["Minuten"].max())
-gekozen_minuten = st.sidebar.slider(
-    "Minimaal aantal speelminuten:",
-    min_value=min_minuten,
-    max_value=max_minuten,
-    value=300,
-    step=100,
-    key="minuten_filter"
-)
-
-# --- FILTERING TOEPASSEN ---
-df_filtered = df[
-    (df["Team"].isin(geselecteerde_teams)) &
-    (df["Positie"].isin(geselecteerde_posities)) &
-    (df["Minuten"] >= gekozen_minuten)
-]
-
-if zoek_speler:
-    df_filtered = df_filtered[df_filtered["Speler"].str.contains(zoek_speler, case=False, na=False)]
-
-# Foutafhandeling wanneer geen spelers aan het filter voldoen
-if df_filtered.empty:
-    st.warning("⚠️ Geen spelers gevonden voor deze combinatie van filters. Verruim je filters in het menu links.")
+    st.markdown("---")
+    
+    # Tabelweergave
+    st.subheader("Spelerstatistieken")
+    st.dataframe(filtered_df, use_container_width=True)
 else:
-    # --- HIGHLIGHT CARDS (KPI'S) ---
-    col1, col2, col3, col4 = st.columns(4)
-
-    top_scorer = df_filtered.loc[df_filtered["Goals"].idxmax()]
-    top_assist = df_filtered.loc[df_filtered["Assists"].idxmax()]
-    top_xg = df_filtered.loc[df_filtered["xG"].idxmax()]
-    top_tackles = df_filtered.loc[df_filtered["Tackles"].idxmax()]
-
-    col1.metric("Topscorer", f"{top_scorer['Speler']} ({top_scorer['Team']})", f"{top_scorer['Goals']} Goals")
-    col2.metric("Meeste Assists", f"{top_assist['Speler']} ({top_assist['Team']})", f"{top_assist['Assists']} Assists")
-    col3.metric("Hoogste xG", f"{top_xg['Speler']} ({top_xg['Team']})", f"{top_xg['xG']} xG")
-    col4.metric("Meeste Tackles", f"{top_tackles['Speler']} ({top_tackles['Team']})", f"{top_tackles['Tackles']} Tackles")
-
-    st.markdown("---")
-
-    # --- GRAFIEKEN TABBLADEN ---
-    tab1, tab2, tab3 = st.tabs(["⚽ Aanval (xG vs Goals)", "🅰️ Creativiteit (xA vs Assists)", "🛡️ Verdediging (Tackles vs Interceptions)"])
-
-    with tab1:
-        st.subheader("Expected Goals (xG) vs Daadwerkelijke Goals")
-        fig1 = px.scatter(
-            df_filtered,
-            x="xG",
-            y="Goals",
-            color="Team",
-            hover_name="Speler",
-            size="Minuten",
-            text="Speler",
-            title="Aanvallende efficiëntie (Grootte van bol = speelminuten)"
-        )
-        fig1.update_traces(textposition='top center')
-        st.plotly_chart(fig1, use_container_width=True)
-
-    with tab2:
-        st.subheader("Expected Assists (xA) vs Daadwerkelijke Assists")
-        fig2 = px.scatter(
-            df_filtered,
-            x="xA",
-            y="Assists",
-            color="Team",
-            hover_name="Speler",
-            size="Minuten",
-            text="Speler",
-            title="Creatieve impact (Grootte van bol = speelminuten)"
-        )
-        fig2.update_traces(textposition='top center')
-        st.plotly_chart(fig2, use_container_width=True)
-
-    with tab3:
-        st.subheader("Verdedigende Acties (Tackles vs Onderscheppingen)")
-        fig3 = px.scatter(
-            df_filtered,
-            x="Tackles",
-            y="Interceptions",
-            color="Team",
-            hover_name="Speler",
-            size="Minuten",
-            text="Speler",
-            title="Verdedigende intensiteit"
-        )
-        fig3.update_traces(textposition='top center')
-        st.plotly_chart(fig3, use_container_width=True)
-
-    st.markdown("---")
-
-    # --- DATA TABEL ---
-    st.subheader("📊 Volledige Spelersdatabank")
-    st.dataframe(
-        df_filtered.sort_values(by="Goals", ascending=False),
-        use_container_width=True,
-        column_config={
-            "xG_per_90": st.column_config.NumberColumn("xG / 90 min", format="%.2f"),
-            "xA_per_90": st.column_config.NumberColumn("xA / 90 min", format="%.2f"),
-        }
-    )
-
-    # CSV Exporteren
-    csv = df_filtered.to_csv(index=False).encode('utf-8')
-    st.download_button(
-        label="📥 Download Gefilterde Data als CSV",
-        data=csv,
-        file_name="eredivisie_spelers_2026_2027.csv",
-        mime="text/csv"
-    )
+    st.warning("Er is op dit moment geen data beschikbaar om te tonen.")
